@@ -1,0 +1,31 @@
+﻿<mah:MetroWindow x:Class="USML_Special_Modification.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:USML_Special_Modification"
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:vm="clr-namespace:USML_Special_Modification.ViewModel"
+        mc:Ignorable="d"
+        Title="{Binding Title}" Height="200" Width="450" WindowStartupLocation="CenterScreen">
+
+
+    <mah:MetroWindow.DataContext>
+        <vm:MainViewModel />
+    </mah:MetroWindow.DataContext>
+    <Grid>
+        <StackPanel Margin="20">
+            <TextBlock Text="Xml Modification Tool" FontSize="20"/>
+            <StackPanel Orientation="Horizontal" Margin="0 15 0 0">
+                <TextBlock Text="File Name:"/>
+                <TextBlock Text="{Binding FileName}" Margin="10,0,0,0"/>
+            </StackPanel>
+
+            <Button Command="{Binding SelectedXMLCommand}" Content="Select File" Width="100" HorizontalAlignment="Left" Background="#1976D2" Foreground="White" Margin="0,5,0,0"/>
+            
+        </StackPanel>
+        
+
+
+    </Grid>
+</mah:MetroWindow>
