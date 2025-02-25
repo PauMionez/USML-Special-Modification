@@ -31,7 +31,7 @@ namespace USML_Special_Modification.Abstracts
         {
             get
             {
-                return $"{ApplicationName} v1.2";
+                return $"{ApplicationName} v1.5";
             }
         }
 

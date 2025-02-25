@@ -41,6 +41,12 @@ namespace USML_Special_Modification.Processes
                         result = sectionNumber;
                     }
 
+                    string insertChapNumberTags = InsertDocNumber(result);
+                    if (!string.IsNullOrWhiteSpace(insertChapNumberTags))
+                    {
+                        result = insertChapNumberTags;
+                    }
+
                     string genericTags = InsertGenericTags(result);
                     if (!string.IsNullOrWhiteSpace(genericTags))
                     {
@@ -223,15 +229,20 @@ namespace USML_Special_Modification.Processes
                 documentText = Regex.Replace(documentText, publicLawsPattern, matchpubliclaws =>
                 {
 
+                    #region dump regex
                     //string actionDescriptionPattern = @"<actionDescription>\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?)(.*)<\/actionDescription>";
                     //string actionDescriptionPattern = @"<actionDescription><sidenote><p class=""firstIndent1 fontsize8"">\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?)(.*)<\/actionDescription>";
                     //string actionDescriptionPattern = @"<actionDescription>\b(Approved By|Approved|Received By|Received)\b.*?([A-Z][a-z]+\s\d{1,2},\d{4}).*?<\/actionDescription>";
                     //string actionDescriptionPublicPattern = @"<actionDescription>.*?\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?).*?([A-Z][a-z]+\s\d{1,2},\s\d{4}).*?<\/actionDescription>";
                     //string actionDescriptionPublicPattern = @"<actionDescription>.*?\b(Approved By|Approved|Received By|Received)\b.*?([A-Z][a-z]+\s\d{1,2},\s\d{4}).*?<\/actionDescription>";
-
+                    //string actionDescriptionPublicPattern = @"<actionDescription>.*?\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?).*?([A-Z][a-z]+\s\d{1,2},\s\d{4})([\s.,\/]?).*?<\/actionDescription>";
+                    //string actionDescriptionPublicPattern = @"<actionDescription>.*?\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?).*?([A-Z][a-z]+\s\d{1,2}([\s.,\/]?)\s\d{4})([\s.,\/]?).*?<\/actionDescription>";
+                    //string actionDescriptionPublicPattern = @"<actionDescription>.*?\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?).*?([A-Z][a-z]+\s\d{1,2})([\s.,\/]?)\s(\d{4})([\s.,\/]?).*?<\/actionDescription>";
+                    //string actionDescriptionPublicPattern = @"\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?).*?([A-Z][a-z]+\s\d{1,2})([\s.,\/]?)\s(\d{4})([\s.,\/]?)";
+                    #endregion
 
                     string mainContent = matchpubliclaws.Groups[2].Value;
-                    string actionDescriptionPublicPattern = @"<actionDescription>.*?\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?).*?([A-Z][a-z]+\s\d{1,2},\s\d{4})([\s.,\/]?).*?<\/actionDescription>";
+                    string actionDescriptionPublicPattern = @".*\b(Approved By|Approved|Received By|Received)\b([\s.,\/]?).*?([A-Z][a-z]+\s\d{1,2})([\s.,\/]?)\s(\d{4})([\s.,\/]?).*";
 
                     Match match = Regex.Match(mainContent, actionDescriptionPublicPattern);
 
@@ -240,15 +251,26 @@ namespace USML_Special_Modification.Processes
                     string extraValue = match.Groups[2].Value;
                     string approvedDateValue = match.Groups[3].Value;
                     string extraValue2 = match.Groups[4].Value;
+                    string approvedYearValue = match.Groups[5].Value;
+                    string extraValue3 = match.Groups[6].Value;
                     string newSidenote = string.Empty;
+                    string fulldate = $"{approvedDateValue}, {approvedYearValue}";
 
-                    if (DateTime.TryParse(approvedDateValue, out DateTime parsedDate))
+                    if (DateTime.TryParse(fulldate, out DateTime parsedDate))
                     {
-                        newSidenote = $@"<sidenote><p class=""centered fontsize8""><approvedDate date=""{parsedDate:yyyy-MM-dd}"">{approvedDateValue}</approvedDate></p></sidenote>";
+                        mainContent = Regex.Replace(mainContent, dcDatePattern, match1 =>
+                        {
+                            //return $"<dc:date>{parsedDate:yyyy-MM-dd}</dc:date>";
+                            return $"<dc:date>{parsedDate:MMMM dd, yyyy}</dc:date>";
+                        });
+
+                        newSidenote = $@"<sidenote><p class=""centered fontsize8""><approvedDate date=""{parsedDate:yyyy-MM-dd}"">{fulldate}</approvedDate>.</p></sidenote>";
                     }
 
+                   
 
-                    mainContent = mainContent.Replace(fullapprovedvalue, $"<actionDescription>{approvedByValue}{extraValue} {approvedDateValue}{extraValue2}</actionDescription>");
+
+                    mainContent = mainContent.Replace(fullapprovedvalue, $"<action><actionDescription>{approvedByValue}, {approvedDateValue}, {approvedYearValue}</actionDescription></action>");
 
                     string resultpublic = mainContent.Replace("</officialTitle>", $"</officialTitle>\n{newSidenote}");
 
@@ -282,7 +304,6 @@ namespace USML_Special_Modification.Processes
 
                     string resultresolution = mainContent.Replace("</officialTitle>", $"</officialTitle>\n{newSidenote}");
 
-
                     return $"<concurrentResolutions>{resultresolution}</concurrentResolutions>";
                 });
 
@@ -291,6 +312,49 @@ namespace USML_Special_Modification.Processes
             }
             catch (Exception ex)
             {
+                ErrorMessage(ex);
+            }
+            return result;
+        }
+
+        private string InsertDocNumber(string documentText)
+        {
+            string result = string.Empty;
+            try
+            {
+                //string chapPattern = @"\b(Chap\.\s*|CHAPTER\s*)(\d+\.&#x[0-9a-fA-F]+;|[\w\s&#;—.-]*)";
+                //string chapPattern = @"<dc:title>\b(Chap\.\s*|CHAPTER\s*)(\d*)([\s.,\/]?).*";
+                string chapPattern = @"<dc:title>\b(Chap\.\s*|CHAPTER\s*)(\d*)([\s.,\/]?)";
+                string docnumPattern = @"<docNumber>([\s\S]*?)<\/docNumber>";
+
+                string extraChar = "";
+
+
+                Match pattern = Regex.Match(documentText, chapPattern);
+                if (pattern.Success)
+                {
+                    string dcTitle = pattern.Groups[0].Value;
+                    string chapvalue = pattern.Groups[1].Value;
+                    string chapNumber = pattern.Groups[2].Value;
+                    extraChar = pattern.Groups[3].Value;
+
+                    documentText = documentText.Replace(dcTitle, $"<dc:title>{chapvalue} {chapNumber}{extraChar}");
+
+                    Match docnumMatch = Regex.Match(documentText, docnumPattern);
+                    string docnumFull = docnumMatch.Groups[0].Value;
+                    string docnumValue = docnumMatch.Groups[1].Value;
+
+                    if (docnumValue == "" )
+                    {
+                        documentText = documentText.Replace(docnumFull, $"<docNumber>{chapNumber}</docNumber>");
+                    }
+                }
+
+                result = documentText;
+            }
+            catch (Exception ex)
+            {
+
                 ErrorMessage(ex);
             }
             return result;

@@ -24,8 +24,9 @@
             <Button Command="{Binding SelectedXMLCommand}" Content="Select File" Width="100" HorizontalAlignment="Left" Background="#1976D2" Foreground="White" Margin="0,5,0,0"/>
             
         </StackPanel>
-        
 
+        <Grid Visibility="{Binding IsProcessing}" Background="LightGray" Opacity="0.4"/>
+        <mah:ProgressRing Visibility="{Binding IsProcessing}" Width="50" Height="50"/>
 
     </Grid>
 </mah:MetroWindow>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using DevExpress.Mvvm;
 using USML_Special_Modification.Processes;
 
@@ -15,6 +16,7 @@ namespace USML_Special_Modification.ViewModel
         public MainViewModel()
         {
             SelectedXMLCommand = new AsyncCommand(SelectedXML);
+            IsProcessing = Visibility.Hidden;
         }
 
         private string _fileNamemyVar;
@@ -33,6 +35,14 @@ namespace USML_Special_Modification.ViewModel
             set { _xmlTextContent = value; OnPropertyChanged(); }
         }
 
+        
+
+        private Visibility _isProcessing;
+        public Visibility IsProcessing
+        {
+            get { return _isProcessing; }
+            set { _isProcessing = value; OnPropertyChanged(); }
+        }
 
         private async Task SelectedXML()
         {
@@ -54,7 +64,7 @@ namespace USML_Special_Modification.ViewModel
 
                 foreach (string xmlFilePath in xmlFilePathsList)
                 {
-
+                    IsProcessing = Visibility.Visible;
                     // Load xml file in textviewer
                     using (FileStream fs = new FileStream(xmlFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
                     {
@@ -66,6 +76,8 @@ namespace USML_Special_Modification.ViewModel
 
                     ISpecialAutoTagging autoTag = new XmlModifierTags();
                     string updatedDocumentText = await autoTag.AutoTaggingScan(XmlTextContent);
+
+
 
                     //Create Updated folder inside the current file's directory
                     string inputDirectory = Path.GetDirectoryName(xmlFilePath);
@@ -82,7 +94,7 @@ namespace USML_Special_Modification.ViewModel
                     File.WriteAllText(outputFilePath, updatedDocumentText);
                 }
 
-
+                IsProcessing = Visibility.Hidden;
                 InformationMessage("Special Modification", "Update Completed");
             }
             catch (Exception ex)
